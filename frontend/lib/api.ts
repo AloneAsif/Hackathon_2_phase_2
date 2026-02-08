@@ -1,19 +1,17 @@
 // frontend/lib/api.ts
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): HeadersInit => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('jwt_token');
     if (token) {
-      return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      };
+      headers['Authorization'] = `Bearer ${token}`;
     }
   }
-  return {
-    'Content-Type': 'application/json',
-  };
+  return headers;
 };
 
 interface ApiClientResponse<T> extends Response {
