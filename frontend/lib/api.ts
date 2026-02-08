@@ -51,10 +51,25 @@ export const apiClient = {
     return response.json();
   },
 
-put: async <T>(path: string, data: any): Promise<T> => {
+  put: async <T>(path: string, data: any): Promise<T> => {
     const headers = getAuthHeaders();
     const response: ApiClientResponse<T> = await fetch(`${API_BASE_URL}${path}`, {
       method: 'PUT',
+      headers: headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
+      throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  patch: async <T>(path: string, data: any): Promise<T> => {
+    const headers = getAuthHeaders();
+    const response: ApiClientResponse<T> = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'PATCH',
       headers: headers,
       body: JSON.stringify(data),
     });
