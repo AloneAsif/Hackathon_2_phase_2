@@ -91,3 +91,4 @@ frontend/yarn-error.log*
 
 # Allow frontend/lib/ as it contains source code
 !frontend/lib/
+.vercel
