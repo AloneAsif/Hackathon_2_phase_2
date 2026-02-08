@@ -27,9 +27,13 @@ export const apiClient = {
     });
 
     if (!response.ok) {
-      // Attempt to parse JSON error, fallback to status text
-      const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
-      throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`);
+      const errorBody = await response.json().catch(() => null);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+
+      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
+        errorMessage = errorBody.detail;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   },
@@ -43,8 +47,13 @@ export const apiClient = {
     });
 
     if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
-      throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`);
+      const errorBody = await response.json().catch(() => null);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+
+      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
+        errorMessage = errorBody.detail;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   },
@@ -58,8 +67,13 @@ export const apiClient = {
     });
 
     if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
-      throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`);
+      const errorBody = await response.json().catch(() => null);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+
+      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
+        errorMessage = errorBody.detail;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   },
@@ -73,8 +87,13 @@ export const apiClient = {
     });
 
     if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
-      throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`);
+      const errorBody = await response.json().catch(() => null);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+
+      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
+        errorMessage = errorBody.detail;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   },
@@ -87,8 +106,13 @@ export const apiClient = {
     });
 
     if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
-      throw new Error(errorBody.detail || `HTTP error! status: ${response.status}`);
+      const errorBody = await response.json().catch(() => null);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+
+      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
+        errorMessage = errorBody.detail;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   },
