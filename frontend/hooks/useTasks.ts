@@ -10,7 +10,7 @@ export const useTasks = (userId: string) => {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const response: any[] = await apiClient.get<any[]>(`/api/${userId}/tasks`, userId);
+      const response: any[] = await apiClient.get<any[]>(`/api/${userId}/tasks`);
       const transformedTasks = response?.map(task => ({
         id: task.id,
         userId: task.user_id,
@@ -31,7 +31,7 @@ export const useTasks = (userId: string) => {
 
   const createTask = async (taskData: CreateTaskData) => {
     try {
-      const response: any = await apiClient.post<any>(`/api/${userId}/tasks`, taskData, userId);
+      const response: any = await apiClient.post<any>(`/api/${userId}/tasks`, taskData);
       const newTask = {
         id: response.id,
         userId: response.user_id,
@@ -52,7 +52,7 @@ export const useTasks = (userId: string) => {
 
   const updateTask = async (taskId: string, taskData: UpdateTaskData) => {
     try {
-      const response: any = await apiClient.put<any>(`/api/${userId}/tasks/${taskId}`, taskData, userId);
+      const response: any = await apiClient.put<any>(`/api/${userId}/tasks/${taskId}`, taskData);
       const updatedTask = {
         id: response.id,
         userId: response.user_id,
@@ -73,7 +73,7 @@ export const useTasks = (userId: string) => {
 
   const deleteTask = async (taskId: string) => {
     try {
-      await apiClient.delete(`/api/${userId}/tasks/${taskId}`, userId);
+      await apiClient.delete(`/api/${userId}/tasks/${taskId}`);
       setTasks(prev => prev.filter(task => task.id !== taskId));
     } catch (err) {
       setError('Failed to delete task');
@@ -89,7 +89,7 @@ export const useTasks = (userId: string) => {
 
       const response: any = await apiClient.patch<any>(`/api/${userId}/tasks/${taskId}`, {
         completed: !task.completed
-      }, userId);
+      });
 
       const updatedTask = {
         id: response.id,
