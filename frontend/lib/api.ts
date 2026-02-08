@@ -1,221 +1,120 @@
-// frontend/lib/api.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
-const AUTH_API_BASE_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:8000';
+// API client with JWT token handling for API calls
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
-const getAuthHeaders = (): HeadersInit => {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('jwt_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+class ApiClient {
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = API_BASE_URL;
   }
-  return headers;
-};
 
-interface ApiClientResponse<T> extends Response {
-  json(): Promise<T>;
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    userId?: string
+  ): Promise<T> {
+    // Construct the URL based on the endpoint and userId
+    let url = `${this.baseUrl}${endpoint}`;
+
+    // For user-specific endpoints, replace placeholders or construct properly
+    if (userId && endpoint.includes('{user_id}')) {
+      url = `${this.baseUrl}${endpoint.replace('{user_id}', userId)}`;
+    } else if (userId && !endpoint.startsWith('/api/')) {
+      // Adjust endpoint format to match backend API: /api/{user_id}/tasks
+      const parts = endpoint.split('/');
+      if (parts.length >= 3 && parts[1] === 'users' && parts[3]) {
+        // Convert /users/{userId}/tasks/{taskId} to /api/{userId}/tasks/{taskId}
+        url = `${this.baseUrl}/api/${userId}/${parts.slice(3).join('/')}`;
+      } else if (parts.length >= 2 && parts[1] === 'users') {
+        // Convert /users/{userId}/tasks to /api/{userId}/tasks
+        url = `${this.baseUrl}/api/${userId}/${parts[3] || ''}`;
+      }
+    }
+
+    // Get JWT token from wherever it's stored (localStorage, cookies, etc.)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
+
+    const finalHeaders = new Headers();
+    finalHeaders.set('Content-Type', 'application/json');
+
+    // Merge existing headers from options
+    if (options.headers) {
+      if (options.headers instanceof Headers) {
+        options.headers.forEach((value, key) => {
+          finalHeaders.set(key, value);
+        });
+      } else if (Array.isArray(options.headers)) {
+        options.headers.forEach(([key, value]) => {
+          finalHeaders.set(key, value);
+        });
+      } else { // Record<string, string>
+        for (const key in options.headers) {
+          finalHeaders.set(key, options.headers[key]);
+        }
+      }
+    }
+
+    if (token) {
+      finalHeaders.set('Authorization', `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers: finalHeaders,
+    });
+
+    if (!response.ok) {
+      // Get error details from response
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage += `, message: ${errorData.detail || errorData.message || 'Unknown error'}`;
+      } catch (e) {
+        // If response is not JSON, use the status text
+        errorMessage += `, message: ${response.statusText}`;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    // Handle 204 No Content responses
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json();
+  }
+
+  async get<T>(endpoint: string, userId?: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET' }, userId);
+  }
+
+  async post<T>(endpoint: string, data?: any, userId?: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    }, userId);
+  }
+
+  async put<T>(endpoint: string, data?: any, userId?: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    }, userId);
+  }
+
+  async patch<T>(endpoint: string, data?: any, userId?: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    }, userId);
+  }
+
+  async delete<T>(endpoint: string, userId?: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' }, userId);
+  }
 }
 
+export const apiClient = new ApiClient();
 
-export const apiClient = {
-  get: async <T>(path: string, userId?: string): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${API_BASE_URL}${path}`, {
-      method: 'GET',
-      headers: headers,
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-
-  post: async <T>(path: string, data: any): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${API_BASE_URL}${path}`, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-
-  put: async <T>(path: string, data: any): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${API_BASE_URL}${path}`, {
-      method: 'PUT',
-      headers: headers,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-
-  patch: async <T>(path: string, data: any): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${API_BASE_URL}${path}`, {
-      method: 'PATCH',
-      headers: headers,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-
-  delete: async <T>(path: string): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${API_BASE_URL}${path}`, {
-      method: 'DELETE',
-      headers: headers,
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-};
-
-export const authApiClient = {
-  get: async <T>(path: string, userId?: string): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${AUTH_API_BASE_URL}${path}`, {
-      method: 'GET',
-      headers: headers,
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-
-  post: async <T>(path: string, data: any): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${AUTH_API_BASE_URL}${path}`, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-
-  put: async <T>(path: string, data: any): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${AUTH_API_BASE_URL}${path}`, {
-      method: 'PUT',
-      headers: headers,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-
-  patch: async <T>(path: string, data: any): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${AUTH_API_BASE_URL}${path}`, {
-      method: 'PATCH',
-      headers: headers,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-
-  delete: async <T>(path: string): Promise<T> => {
-    const headers = getAuthHeaders();
-    const response: ApiClientResponse<T> = await fetch(`${AUTH_API_BASE_URL}${path}`, {
-      method: 'DELETE',
-      headers: headers,
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      if (errorBody && typeof errorBody === 'object' && 'detail' in errorBody && typeof errorBody.detail === 'string') {
-        errorMessage = errorBody.detail;
-      }
-      throw new Error(errorMessage);
-    }
-    return response.json();
-  },
-};
+export default ApiClient;

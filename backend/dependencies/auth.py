@@ -34,7 +34,7 @@ def verify_token(token: str) -> dict:
         )
 
         # Extract user_id from token
-        user_id: str = payload.get("user_id")
+        user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
 

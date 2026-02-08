@@ -1,62 +1,89 @@
-// frontend/lib/auth.ts
-import { SignInData, SignUpData, User } from '../types/user';
-import { authApiClient } from './api';
+// Authentication utilities for Better Auth integration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
-const TOKEN_KEY = 'jwt_token';
+export const setAuthToken = (token: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('jwt_token', token);
+  }
+};
 
 export const getAuthToken = (): string | null => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem('jwt_token');
   }
   return null;
 };
 
+export const removeAuthToken = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('jwt_token');
+  }
+};
+
 export const isAuthenticated = (): boolean => {
   const token = getAuthToken();
-  // Basic check: just presence of token. A more robust check would validate expiration.
+  // In a real implementation, you'd also verify the token hasn't expired
   return !!token;
 };
 
-export const removeAuthToken = (): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(TOKEN_KEY);
+// Functions for Better Auth integration
+// These interact with the backend API
+export const signIn = async (email: string, password: string): Promise<{ user: any; token: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/signin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || 'Sign in failed');
   }
+
+  const data = await response.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+
+  return data;
 };
 
-export const signIn = async (email: string, password: string): Promise<{ user: User; token: string }> => {
-  const response: any = await authApiClient.post('/auth/login', { email, password });
-  if (typeof window !== 'undefined' && response.access_token) {
-    localStorage.setItem(TOKEN_KEY, response.access_token);
+export const signUp = async (email: string, name: string, password: string): Promise<{ user: any; token: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, name, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || 'Sign up failed');
   }
-  // Assuming the backend returns user data along with the token
-  // For now, mocking user data based on email, will need to adjust if backend response is different
-  const mockUser: User = {
-    id: response.user_id || 'mock-id',
-    email: email,
-    name: response.username || 'User', // Assuming username might be in response
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  return { user: mockUser, token: response.access_token };
+
+  const data = await response.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+
+  return data;
 };
 
-export const signUp = async (email: string, name: string, password: string): Promise<{ user: User; token: string }> => {
-  const response: any = await authApiClient.post('/auth/register', { email, name, password });
-  if (typeof window !== 'undefined' && response.access_token) {
-    localStorage.setItem(TOKEN_KEY, response.access_token);
-  }
-  const mockUser: User = {
-    id: response.user_id || 'mock-id',
-    email: email,
-    name: name,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  return { user: mockUser, token: response.access_token };
-};
+export const signOut = async (): Promise<void> => {
+  const token = getAuthToken();
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/signout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
 
-export const signOut = async () => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(TOKEN_KEY);
+    if (response.ok) {
+      removeAuthToken();
+    }
+  } catch (error) {
+    // Even if API call fails, still remove local token
+    removeAuthToken();
   }
 };

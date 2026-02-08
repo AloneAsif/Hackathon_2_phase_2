@@ -31,7 +31,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ userId, onTaskCreated }) => {
         title: title.trim(),
         description: description.trim(),
         completed: false,
-      });
+      }, userId);
 
       const newTask = {
         id: response.id,

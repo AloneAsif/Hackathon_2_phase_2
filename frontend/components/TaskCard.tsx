@@ -21,7 +21,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete }) => {
     try {
       const response: any = await apiClient.patch<any>(`/api/${task.userId}/tasks/${task.id}`, {
         completed: !task.completed,
-      });
+      }, task.userId);
       const updatedTask = {
         id: response.id,
         userId: response.user_id,
@@ -44,7 +44,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete }) => {
         title,
         description,
         completed: task.completed,
-      });
+      }, task.userId);
       const updatedTask = {
         id: response.id,
         userId: response.user_id,
