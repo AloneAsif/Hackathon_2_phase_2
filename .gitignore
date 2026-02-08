@@ -88,3 +88,6 @@ frontend/logs/
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
+
+# Allow frontend/lib/ as it contains source code
+!frontend/lib/
