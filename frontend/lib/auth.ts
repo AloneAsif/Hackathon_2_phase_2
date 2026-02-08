@@ -1,6 +1,6 @@
 // frontend/lib/auth.ts
 import { SignInData, SignUpData, User } from '../types/user';
-import { apiClient } from './api';
+import { authApiClient } from './api';
 
 const TOKEN_KEY = 'jwt_token';
 
@@ -24,7 +24,7 @@ export const removeAuthToken = (): void => {
 };
 
 export const signIn = async (email: string, password: string): Promise<{ user: User; token: string }> => {
-  const response: any = await apiClient.post('/auth/login', { email, password });
+  const response: any = await authApiClient.post('/auth/login', { email, password });
   if (typeof window !== 'undefined' && response.access_token) {
     localStorage.setItem(TOKEN_KEY, response.access_token);
   }
@@ -41,7 +41,7 @@ export const signIn = async (email: string, password: string): Promise<{ user: U
 };
 
 export const signUp = async (email: string, name: string, password: string): Promise<{ user: User; token: string }> => {
-  const response: any = await apiClient.post('/auth/register', { email, name, password });
+  const response: any = await authApiClient.post('/auth/register', { email, name, password });
   if (typeof window !== 'undefined' && response.access_token) {
     localStorage.setItem(TOKEN_KEY, response.access_token);
   }
